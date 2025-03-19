@@ -14,6 +14,7 @@ type TimeLord struct {
 	Start        *models.TimeOfDay
 	Stop         *models.TimeOfDay
 	Interval     *models.Interval
+	StartTime    *models.StartTime
 	Days         []models.Weekday
 }
 
@@ -27,6 +28,14 @@ func (tl TimeLord) Check(now time.Time) bool {
 
 	if !start.IsZero() && (now.Before(start) || !now.Before(stop)) {
 		return false
+	}
+
+	if tl.StartTime != nil {
+		startTime := time.Date(now.Year(), now.Month(), now.Day(),
+			0, 0, 0, 0, tl.loc())
+		if !startTime.Before(now) {
+			return false
+		}
 	}
 
 	if tl.PreviousTime.IsZero() {

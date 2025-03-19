@@ -44,6 +44,7 @@ type Source struct {
 	Start          *TimeOfDay `json:"start"`
 	Stop           *TimeOfDay `json:"stop"`
 	Days           []Weekday  `json:"days"`
+	StartTime      *StartTime `json:"start_time"`
 	Location       *Location  `json:"location"`
 }
 
@@ -72,6 +73,40 @@ type MetadataField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
+
+type StartTime struct {
+	Year  int
+	Month time.Month
+	Day   int
+}
+
+func (st *StartTime) UnmarshalJSON(payload []byte) error {
+	var timeStr string
+	err := json.Unmarshal(payload, &timeStr)
+	if err != nil {
+		return err
+	}
+
+	parseTime, err := time.Parse("2006-01-02", timeStr)
+	if err != nil {
+		return fmt.Errorf("invalid time format: %s, must be in the format: YYYY-MM-DD", timeStr)
+	}
+
+	st.Year = parseTime.Year()
+	st.Month = parseTime.Month()
+	st.Day = parseTime.Day()
+
+	return nil
+}
+
+func (st StartTime) MarshalJSON() ([]byte, error) {
+	dateStr := fmt.Sprintf("%04d-%02d-%02d", st.Year, st.Month, st.Day)
+	return json.Marshal(dateStr)
+}
+
+// func (st StartTime) String() string {
+// 	return fmt.Sprintf("%04d-%02d-%02d", st.Year, st.Month, st.Day)
+// }
 
 type Interval time.Duration
 
