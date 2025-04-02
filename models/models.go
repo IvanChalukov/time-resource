@@ -39,12 +39,13 @@ type CheckRequest struct {
 type CheckResponse []Version
 
 type Source struct {
-	InitialVersion bool       `json:"initial_version"`
-	Interval       *Interval  `json:"interval"`
-	Start          *TimeOfDay `json:"start"`
-	Stop           *TimeOfDay `json:"stop"`
-	Days           []Weekday  `json:"days"`
-	Location       *Location  `json:"location"`
+	InitialVersion bool        `json:"initial_version"`
+	Interval       *Interval   `json:"interval"`
+	Start          *TimeOfDay  `json:"start"`
+	Stop           *TimeOfDay  `json:"stop"`
+	Days           []Weekday   `json:"days"`
+	Location       *Location   `json:"location"`
+	StartAfter     *StartAfter `json:"start_after"`
 }
 
 func (source Source) Validate() error {
@@ -221,4 +222,64 @@ func (x *Weekday) UnmarshalJSON(payload []byte) error {
 
 func (wd Weekday) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Weekday(wd).String())
+}
+
+var dateTimeFormats []string
+
+func init() {
+	dateTimeFormats = append(dateTimeFormats, "2006-01-02T15:04:05")
+	dateTimeFormats = append(dateTimeFormats, "2006-01-02T15:04")
+	dateTimeFormats = append(dateTimeFormats, "2006-01-02T15")
+	dateTimeFormats = append(dateTimeFormats, time.DateOnly)
+	dateTimeFormats = append(dateTimeFormats, time.DateTime)
+}
+
+type StartAfter struct {
+	Year   int
+	Month  time.Month
+	Day    int
+	Hour   int
+	Minute int
+	Second int
+}
+
+func NewStartAfter(t time.Time) StartAfter {
+	return StartAfter{
+		Year:   t.Year(),
+		Month:  t.Month(),
+		Day:    t.Day(),
+		Hour:   t.Hour(),
+		Minute: t.Minute(),
+		Second: t.Second(),
+	}
+}
+
+func (sa *StartAfter) UnmarshalJSON(payload []byte) error {
+	var dateTimeStr string
+
+	err := json.Unmarshal(payload, &dateTimeStr)
+	if err != nil {
+		return err
+	}
+
+	var startAfter time.Time
+	for _, format := range dateTimeFormats {
+		startAfter, err = time.Parse(format, dateTimeStr)
+		if err == nil {
+			break
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("invalid date format: %s, must be one of: %s", dateTimeStr, strings.Join(dateTimeFormats, ", "))
+	}
+	*sa = NewStartAfter(startAfter)
+
+	return nil
+}
+
+func (sa StartAfter) MarshalJSON() ([]byte, error) {
+	startTimeStr := fmt.Sprintf("%04d-%02d-%02dT%02d:%02d:%02d",
+		sa.Year, sa.Month, sa.Day, sa.Hour, sa.Minute, sa.Second)
+	return json.Marshal(startTimeStr)
 }

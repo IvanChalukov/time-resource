@@ -15,6 +15,7 @@ type TimeLord struct {
 	Stop         *models.TimeOfDay
 	Interval     *models.Interval
 	Days         []models.Weekday
+	StartAfter   *models.StartAfter
 }
 
 func (tl TimeLord) Check(now time.Time) bool {
@@ -23,6 +24,14 @@ func (tl TimeLord) Check(now time.Time) bool {
 
 	if !tl.daysMatch(now) {
 		return false
+	}
+
+	if tl.StartAfter != nil {
+		startAfter := time.Date(tl.StartAfter.Year, tl.StartAfter.Month, tl.StartAfter.Day,
+			tl.StartAfter.Hour, tl.StartAfter.Minute, tl.StartAfter.Second, 0, tl.loc())
+		if !startAfter.Before(now) {
+			return false
+		}
 	}
 
 	if !start.IsZero() && (now.Before(start) || !now.Before(stop)) {
