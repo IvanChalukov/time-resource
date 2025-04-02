@@ -27,8 +27,9 @@ type testCase struct {
 
 	days []time.Weekday
 
-	prev    string
-	prevDay time.Weekday
+	start_time string
+	prev       string
+	prevDay    time.Weekday
 
 	now       string
 	extraTime time.Duration
@@ -41,6 +42,7 @@ type testCase struct {
 
 const exampleFormatWithTZ = "3:04 PM -0700 2006"
 const exampleFormatWithoutTZ = "3:04 PM 2006"
+const iso8601Format = "2006-01-02T15:04:05Z"
 
 func (tc testCase) Run() {
 	var tl lord.TimeLord
@@ -57,6 +59,13 @@ func (tc testCase) Run() {
 		format = exampleFormatWithoutTZ
 	} else {
 		format = exampleFormatWithTZ
+	}
+
+	if tc.start_time != "" {
+		startTime, err := time.Parse(iso8601Format, tc.start_time)
+		Expect(err).NotTo(HaveOccurred())
+		startTimeModel := models.NewStartTime(startTime.UTC())
+		tl.StartTime = &startTimeModel
 	}
 
 	if tc.start != "" {
@@ -454,5 +463,71 @@ var _ = DescribeTable("A range with an interval and a previous time", (testCase)
 
 		result: false,
 		latest: expectedTime{hour: 14, minute: 58},
+	}),
+)
+
+var _ = DescribeTable("Start time with a range and interval", (testCase).Run,
+	Entry("start_time is in the future, now is before start_time", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2025-01-01T00:00:00Z",
+		now:        "3:06 AM +0000",
+		result:     false,
+		latest:     expectedTime{isZero: true},
+	}),
+	Entry("start_time is in the future, now is after start_time but before range", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2025-01-01T00:00:00Z",
+		now:        "12:00 PM +0000",
+		result:     false,
+		latest:     expectedTime{isZero: true},
+	}),
+	Entry("start_time is in the past, now is within the range", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2017-12-31T00:00:00Z",
+		now:        "1:30 PM +0000",
+		result:     true,
+		latest:     expectedTime{hour: 13, minute: 30},
+	}),
+	Entry("start_time is in the past, now is outside the range", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2017-12-31T00:00:00Z",
+		now:        "4:00 PM +0000",
+		result:     false,
+		latest:     expectedTime{isZero: true},
+	}),
+	Entry("start_time is in the past, now is before the range", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2017-12-31T00:00:00Z",
+		now:        "12:00 PM +0000",
+		result:     false,
+		latest:     expectedTime{isZero: true},
+	}),
+	Entry("start_time is exactly at the start of the range", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2017-12-31T00:00:00Z",
+		now:        "1:00 PM +0000",
+		result:     true,
+		latest:     expectedTime{hour: 13, minute: 0},
+	}),
+	Entry("start_time is exactly at the stop of the range", testCase{
+		interval:   "2m",
+		start:      "1:00 PM +0000",
+		stop:       "3:00 PM +0000",
+		start_time: "2017-12-31T00:00:00Z",
+		now:        "3:00 PM +0000",
+		result:     false,
+		latest:     expectedTime{isZero: true},
 	}),
 )

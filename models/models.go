@@ -74,10 +74,34 @@ type MetadataField struct {
 	Value string `json:"value"`
 }
 
+var dateFormats []string
+
+func init() {
+	dateFormats = append(dateFormats, "2006-01-02T15:04:05")
+	dateFormats = append(dateFormats, "2006-01-02T15:04")
+	dateFormats = append(dateFormats, "2006-01-02T15")
+	dateFormats = append(dateFormats, time.DateOnly) // "2006-01-02"
+	dateFormats = append(dateFormats, time.DateTime) // "2006-01-02 15:04:05"
+}
+
 type StartTime struct {
-	Year  int
-	Month time.Month
-	Day   int
+	Year   int
+	Month  time.Month
+	Day    int
+	Hour   int
+	Minute int
+	Second int
+}
+
+func NewStartTime(t time.Time) StartTime {
+	return StartTime{
+		Year:   t.Year(),
+		Month:  t.Month(),
+		Day:    t.Day(),
+		Hour:   t.Hour(),
+		Minute: t.Minute(),
+		Second: t.Second(),
+	}
 }
 
 func (st *StartTime) UnmarshalJSON(payload []byte) error {
@@ -87,26 +111,26 @@ func (st *StartTime) UnmarshalJSON(payload []byte) error {
 		return err
 	}
 
-	parseTime, err := time.Parse("2006-01-02", timeStr)
+	var dateTime time.Time
+	for _, format := range dateFormats {
+		dateTime, err = time.Parse(format, timeStr)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
-		return fmt.Errorf("invalid time format: %s, must be in the format: YYYY-MM-DD", timeStr)
+		return fmt.Errorf("invalid date format: %s, must be one of: %s", timeStr, strings.Join(dateFormats, ", "))
 	}
 
-	st.Year = parseTime.Year()
-	st.Month = parseTime.Month()
-	st.Day = parseTime.Day()
-
+	*st = NewStartTime(dateTime)
 	return nil
 }
 
 func (st StartTime) MarshalJSON() ([]byte, error) {
-	dateStr := fmt.Sprintf("%04d-%02d-%02d", st.Year, st.Month, st.Day)
+	dateStr := fmt.Sprintf("%04d-%02d-%02dT%02d:%02d:%02dZ",
+		st.Year, st.Month, st.Day, st.Hour, st.Minute, st.Second)
 	return json.Marshal(dateStr)
 }
-
-// func (st StartTime) String() string {
-// 	return fmt.Sprintf("%04d-%02d-%02d", st.Year, st.Month, st.Day)
-// }
 
 type Interval time.Duration
 

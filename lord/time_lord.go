@@ -31,8 +31,8 @@ func (tl TimeLord) Check(now time.Time) bool {
 	}
 
 	if tl.StartTime != nil {
-		startTime := time.Date(now.Year(), now.Month(), now.Day(),
-			0, 0, 0, 0, tl.loc())
+		startTime := time.Date(tl.StartTime.Year, tl.StartTime.Month, tl.StartTime.Day,
+			tl.StartTime.Hour, tl.StartTime.Minute, tl.StartTime.Second, 0, tl.loc())
 		if !startTime.Before(now) {
 			return false
 		}
