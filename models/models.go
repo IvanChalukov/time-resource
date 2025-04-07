@@ -234,25 +234,7 @@ func init() {
 	dateTimeFormats = append(dateTimeFormats, time.DateTime)
 }
 
-type StartAfter struct {
-	Year   int
-	Month  time.Month
-	Day    int
-	Hour   int
-	Minute int
-	Second int
-}
-
-func NewStartAfter(t time.Time) StartAfter {
-	return StartAfter{
-		Year:   t.Year(),
-		Month:  t.Month(),
-		Day:    t.Day(),
-		Hour:   t.Hour(),
-		Minute: t.Minute(),
-		Second: t.Second(),
-	}
-}
+type StartAfter time.Time
 
 func (sa *StartAfter) UnmarshalJSON(payload []byte) error {
 	var dateTimeStr string
@@ -273,13 +255,15 @@ func (sa *StartAfter) UnmarshalJSON(payload []byte) error {
 	if err != nil {
 		return fmt.Errorf("invalid date format: %s, must be one of: %s", dateTimeStr, strings.Join(dateTimeFormats, ", "))
 	}
-	*sa = NewStartAfter(startAfter)
+	*sa = StartAfter(startAfter)
 
 	return nil
 }
 
 func (sa StartAfter) MarshalJSON() ([]byte, error) {
+	startTime := time.Time(sa)
 	startTimeStr := fmt.Sprintf("%04d-%02d-%02dT%02d:%02d:%02d",
-		sa.Year, sa.Month, sa.Day, sa.Hour, sa.Minute, sa.Second)
+		startTime.Year(), startTime.Month(), startTime.Day(),
+		startTime.Hour(), startTime.Minute(), startTime.Second())
 	return json.Marshal(startTimeStr)
 }

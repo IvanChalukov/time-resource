@@ -27,8 +27,7 @@ func (tl TimeLord) Check(now time.Time) bool {
 	}
 
 	if tl.StartAfter != nil {
-		startAfter := time.Date(tl.StartAfter.Year, tl.StartAfter.Month, tl.StartAfter.Day,
-			tl.StartAfter.Hour, tl.StartAfter.Minute, tl.StartAfter.Second, 0, tl.loc())
+		startAfter := time.Time(*tl.StartAfter).In(tl.loc())
 		if !startAfter.Before(now) {
 			return false
 		}

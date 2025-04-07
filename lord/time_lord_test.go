@@ -64,7 +64,7 @@ func (tc testCase) Run() {
 	if tc.start_after != "" {
 		startTime, err := time.Parse(iso8601Format, tc.start_after)
 		Expect(err).NotTo(HaveOccurred())
-		startTimeModel := models.NewStartAfter(startTime.UTC())
+		startTimeModel := models.StartAfter(startTime.UTC())
 		tl.StartAfter = &startTimeModel
 	}
 
